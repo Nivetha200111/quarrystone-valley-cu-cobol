@@ -1,0 +1,9 @@
+      * QUARRYSTONE VALLEY CREDIT UNION - ENTIRELY FICTIONAL.
+      * SYNTHETIC CODE AND DATA, WRITTEN FOR THE DIOCLE PROJECT.
+      * NOT AFFILIATED WITH ANY REAL CREDIT UNION, BANK OR COMPANY.
+      * LATE FEE OUTPUT (22 BYTES)
+       01  QT-REC.
+           05  QT-LOAN-ID              PIC X(10).
+           05  QT-LATE-FEE             PIC 9(5)V99.
+           05  QT-GRACE                PIC X.
+           05  QT-CODE                 PIC X(4).

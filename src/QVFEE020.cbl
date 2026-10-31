@@ -1,0 +1,74 @@
+      * QUARRYSTONE VALLEY CREDIT UNION - ENTIRELY FICTIONAL.
+      * SYNTHETIC CODE AND DATA, WRITTEN FOR THE DIOCLE PROJECT.
+      * NOT AFFILIATED WITH ANY REAL CREDIT UNION, BANK OR COMPANY.
+      *----------------------------------------------------------------
+      * QVFEE020 - OVERDRAFT AND RETURNED-ITEM (NSF) FEES
+      * CHANGE LOG
+      *   1994-01-17 DMV  INITIAL VERSION
+      *   2009-08-04 DMV  STUDENT WAIVER UP TO TWO ITEMS
+      *   2015-03-30 RNA  NO FEE WHEN OVERDRAWN BY 10.00 OR LESS
+      *   2022-10-12 RNA  DAILY CAP 87.00 (THREE ITEMS)
+      * TRAPS: BOUNDARY AT EXACTLY -10.00, HALF-PERCENT FEE TRUNCATED,
+      *        PREMIUM WAIVER BEATS EVERYTHING, CAP FLAG.
+      *----------------------------------------------------------------
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. QVFEE020.
+       AUTHOR. D M VARGA.
+       DATE-WRITTEN. 1994-01-17.
+       ENVIRONMENT DIVISION.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT ACCT-FILE ASSIGN TO ACCTIN
+               ORGANIZATION IS LINE SEQUENTIAL.
+           SELECT FEE-FILE ASSIGN TO FEEOUT
+               ORGANIZATION IS LINE SEQUENTIAL.
+       DATA DIVISION.
+       FILE SECTION.
+       FD  ACCT-FILE.
+       COPY QVACCT.
+       FD  FEE-FILE.
+       COPY QVFEEO.
+       WORKING-STORAGE SECTION.
+       01  WS-EOF                      PIC X VALUE 'N'.
+           88  END-OF-FILE             VALUE 'Y'.
+       01  WS-ITEM-FEE                 PIC S9(3)V99 COMP-3 VALUE 29.00.
+       01  WS-DAILY-CAP                PIC S9(3)V99 COMP-3 VALUE 87.00.
+       01  WS-FEE                      PIC S9(5)V99 COMP-3.
+       PROCEDURE DIVISION.
+       0000-MAIN.
+           OPEN INPUT ACCT-FILE OUTPUT FEE-FILE
+           PERFORM 8000-READ
+           PERFORM 2000-ASSESS UNTIL END-OF-FILE
+           CLOSE ACCT-FILE FEE-FILE
+           STOP RUN.
+       2000-ASSESS.
+           MOVE ZERO TO WS-FEE
+           MOVE 'NONE' TO QF-REASON
+           EVALUATE TRUE
+               WHEN QA-TIER-PREMIUM
+                   MOVE 'WPRM' TO QF-REASON
+               WHEN QA-BALANCE NOT < -10.00 AND QA-NSF-COUNT = ZERO
+                   CONTINUE
+               WHEN QA-TIER-STUDENT AND QA-NSF-COUNT <= 2
+                   MOVE 'WSTU' TO QF-REASON
+               WHEN OTHER
+                   PERFORM 3000-CALC
+           END-EVALUATE
+           MOVE QA-ACCT-ID TO QF-ACCT-ID
+           MOVE WS-FEE TO QF-FEE
+           WRITE QF-REC
+           PERFORM 8000-READ.
+       3000-CALC.
+           COMPUTE WS-FEE = QA-NSF-COUNT * WS-ITEM-FEE
+           IF QA-BALANCE < -10.00
+      *        EXTENDED OVERDRAFT: 0.5 PCT OF THE OVERDRAWN AMOUNT
+               COMPUTE WS-FEE = WS-FEE - QA-BALANCE * 0.005
+           END-IF
+           IF WS-FEE > WS-DAILY-CAP
+               MOVE WS-DAILY-CAP TO WS-FEE
+               MOVE 'CAPD' TO QF-REASON
+           ELSE
+               MOVE 'CHRG' TO QF-REASON
+           END-IF.
+       8000-READ.
+           READ ACCT-FILE AT END SET END-OF-FILE TO TRUE END-READ.
